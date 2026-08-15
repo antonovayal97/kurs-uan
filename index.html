@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Курс юань / рубль</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a222c;
+      --text: #e8eef4;
+      --muted: #8b9aab;
+      --accent: #3dd68c;
+      --warn: #f0a020;
+      --err: #f07178;
+      --line: #2a3542;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, #1e3a2f 0%, transparent 55%),
+        var(--bg);
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    main {
+      width: min(460px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 28px 24px;
+    }
+    h1 { margin: 0 0 6px; font-size: 1.25rem; font-weight: 650; }
+    .sub { margin: 0 0 20px; color: var(--muted); font-size: 0.88rem; line-height: 1.45; }
+    .sub a { color: var(--accent); }
+    .filters {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      margin-bottom: 18px;
+    }
+    .chip {
+      font-size: 0.72rem;
+      color: var(--muted);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 10px;
+      background: #121820;
+    }
+    .markup {
+      margin-bottom: 16px;
+      padding: 14px 14px 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #121820;
+    }
+    .markup-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 10px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .markup-top strong {
+      color: var(--accent);
+      font-size: 1.1rem;
+      font-variant-numeric: tabular-nums;
+    }
+    .markup input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    .markup-scale {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 4px;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+    .rate-block {
+      text-align: center;
+      padding: 20px 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #121820;
+      margin-bottom: 12px;
+    }
+    .label { color: var(--muted); font-size: 0.85rem; margin-bottom: 8px; }
+    .rate {
+      font-size: 2.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+      color: var(--accent);
+      min-height: 1.2em;
+    }
+    .unit { margin-top: 6px; color: var(--muted); font-size: 0.95rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .mini {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #121820;
+    }
+    .mini .label { font-size: 0.75rem; margin-bottom: 4px; }
+    .mini .val {
+      font-size: 1.15rem;
+      font-weight: 650;
+      font-variant-numeric: tabular-nums;
+    }
+    .meta {
+      display: flex; justify-content: space-between; gap: 12px;
+      font-size: 0.8rem; color: var(--muted); margin-bottom: 14px;
+    }
+    button {
+      width: 100%; border: 0; border-radius: 10px;
+      padding: 12px 16px; font-size: 0.95rem; font-weight: 600;
+      cursor: pointer; color: #062016; background: var(--accent);
+    }
+    button:disabled { opacity: 0.6; cursor: wait; }
+    .status { margin-top: 12px; font-size: 0.85rem; color: var(--muted); }
+    .status.err { color: var(--err); }
+    .status.warn { color: var(--warn); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Курс юань / рубль</h1>
+    <p class="sub">
+      Sell USDT→CNY на
+      <a href="https://www.htx.com/en-us/fiat-crypto/c2c-common/sell-usdt-cny/" target="_blank" rel="noopener">HTX P2P</a>
+      + покупка USDT на A7A5 ETH
+    </p>
+
+    <div class="filters">
+      <span class="chip">3000 ¥</span>
+      <span class="chip">Alipay</span>
+      <span class="chip">без ID</span>
+      <span class="chip">без телефона</span>
+    </div>
+
+    <div class="markup">
+      <div class="markup-top">
+        <span>Наценка</span>
+        <strong id="markupLabel">+5%</strong>
+      </div>
+      <input type="range" id="markup" min="1" max="10" step="1" value="5" />
+      <div class="markup-scale"><span>1%</span><span>10%</span></div>
+    </div>
+
+    <div class="rate-block">
+      <div class="label">1 CNY ≈ <span id="markupHint">(+5%)</span></div>
+      <div class="rate" id="cnyRub">—</div>
+      <div class="unit">₽ (A7A5)</div>
+    </div>
+
+    <div class="rate-block" style="padding:16px 12px">
+      <div class="label">100 000 ₽ ≈</div>
+      <div class="rate" id="cnyFor100k" style="font-size:2rem">—</div>
+      <div class="unit">CNY (¥)</div>
+    </div>
+
+    <div class="grid">
+      <div class="mini">
+        <div class="label">USDT → CNY (продажа)</div>
+        <div class="val"><span id="usdtCny">—</span> ¥</div>
+      </div>
+      <div class="mini">
+        <div class="label">USDT ← A7A5 (покупка)</div>
+        <div class="val"><span id="usdtRub">—</span> ₽</div>
+      </div>
+    </div>
+
+    <div class="meta">
+      <span id="updated">Обновление: —</span>
+      <span id="source">источник: —</span>
+    </div>
+
+    <button type="button" id="refresh">Обновить</button>
+    <div class="status" id="status">Загрузка…</div>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const RUB_EXAMPLE = 100000;
+    const KEY = "kurs_markup_percent";
+
+    let raw = null;
+
+    function savedMarkup() {
+      const n = Number(localStorage.getItem(KEY));
+      if (Number.isInteger(n) && n >= 1 && n <= 10) return n;
+      return 5;
+    }
+
+    function fmt(value, digits = 2) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return "—";
+      return n.toLocaleString("ru-RU", {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+      });
+    }
+
+    function getMarkup() {
+      return Number($("markup").value) || 5;
+    }
+
+    function applyMarkup() {
+      const pct = getMarkup();
+      $("markupLabel").textContent = "+" + pct + "%";
+      $("markupHint").textContent = "(+" + pct + "%)";
+      localStorage.setItem(KEY, String(pct));
+
+      if (!raw || !Number.isFinite(raw.cny_rub_raw)) return;
+
+      const cnyRub = Math.round(raw.cny_rub_raw * (1 + pct / 100) * 10000) / 10000;
+      const cnyFor = cnyRub ? Math.round((RUB_EXAMPLE / cnyRub) * 100) / 100 : 0;
+      $("cnyRub").textContent = fmt(cnyRub, 4);
+      $("cnyFor100k").textContent = fmt(cnyFor, 2);
+    }
+
+    async function loadRate() {
+      $("refresh").disabled = true;
+      $("status").className = "status";
+      $("status").textContent = "Загрузка HTX + A7A5…";
+
+      try {
+        const res = await fetch("/api/cny-rub", { cache: "no-store" });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || "Нет данных");
+
+        raw = {
+          cny_rub_raw: Number(data.cny_rub_raw),
+        };
+        $("usdtCny").textContent = fmt(data.usdt_cny_sell, 2);
+        $("usdtRub").textContent = fmt(data.usdt_rub_buy, 2);
+        applyMarkup();
+
+        const m = data.cny_market || {};
+        const src = m.source === "htx" ? "HTX" : "Binance (fallback)";
+        $("source").textContent = "источник: " + src;
+        $("updated").textContent =
+          "Обновление: " +
+          new Date().toLocaleTimeString("ru-RU", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+
+        if (m.htx_empty) {
+          $("status").className = "status warn";
+          $("status").textContent =
+            "HTX CNY пуст с этого IP (геоблок). Взят запасной P2P с теми же фильтрами.";
+        } else {
+          $("status").className = "status";
+          $("status").textContent =
+            "OK · " + (m.best && m.best.user ? m.best.user : src);
+        }
+      } catch (err) {
+        $("status").className = "status err";
+        $("status").textContent = "Ошибка: " + (err.message || err);
+      } finally {
+        $("refresh").disabled = false;
+      }
+    }
+
+    $("markup").value = String(savedMarkup());
+    $("markup").addEventListener("input", applyMarkup);
+    $("refresh").addEventListener("click", loadRate);
+    applyMarkup();
+    loadRate();
+    setInterval(loadRate, 30000);
+  </script>
+</body>
+</html>
