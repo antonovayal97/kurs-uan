@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Курс юань/рубль: HTX P2P Sell USDT/CNY (Alipay) + A7A5 Ethereum DEX
+ * Курс юань/бат → рубль: HTX P2P CNY + Binance TH USDT/THB + A7A5 Ethereum DEX
  * Запуск: node server.js | pm2 start ecosystem.config.cjs
  */
 
@@ -219,23 +219,56 @@ async function fetchCnyUsdtRate() {
   return fb;
 }
 
+const BINANCE_TH_PAGE = "https://www.binance.th/en/trade/USDT_THB";
+const BINANCE_TH_TICKER =
+  "https://api.binance.th/api/v1/ticker/price?symbol=USDTTHB";
+
+async function fetchBinanceThUsdtThb() {
+  const raw = await httpJson(BINANCE_TH_TICKER, {
+    headers: {
+      Referer: BINANCE_TH_PAGE,
+      Origin: "https://www.binance.th",
+    },
+  });
+  const price = Number(raw.price);
+  if (!Number.isFinite(price) || price <= 0) {
+    throw new Error("Binance TH: пустая цена USDTTHB");
+  }
+  return {
+    source: "binance_th",
+    page: BINANCE_TH_PAGE,
+    symbol: raw.symbol || "USDTTHB",
+    best: { price },
+  };
+}
+
 async function buildPayload() {
-  const eth = await fetchEthUsdtRates();
-  const cny = await fetchCnyUsdtRate();
+  const [eth, cny, thb] = await Promise.all([
+    fetchEthUsdtRates(),
+    fetchCnyUsdtRate(),
+    fetchBinanceThUsdtThb(),
+  ]);
   const usdtRub = Number(eth.usdt_buy_rate);
   const usdtCny = Number(cny.best.price);
+  const usdtThb = Number(thb.best.price);
   const cnyRubRaw = Math.round((usdtRub / usdtCny) * 10000) / 10000;
+  const thbRubRaw = Math.round((usdtRub / usdtThb) * 10000) / 10000;
   const markup = 1.05;
   const cnyRub = Math.round(cnyRubRaw * markup * 10000) / 10000;
+  const thbRub = Math.round(thbRubRaw * markup * 10000) / 10000;
   const rubExample = 100000;
   const cnyForRub = cnyRub ? Math.round((rubExample / cnyRub) * 100) / 100 : 0;
+  const thbForRub = thbRub ? Math.round((rubExample / thbRub) * 100) / 100 : 0;
   return {
     ok: true,
     cny_rub: cnyRub,
     cny_rub_raw: cnyRubRaw,
+    thb_rub: thbRub,
+    thb_rub_raw: thbRubRaw,
     markup_percent: 5,
     rub_example: rubExample,
     cny_for_rub_example: cnyForRub,
+    thb_for_rub_example: thbForRub,
     filters: {
       amount_cny: CNY_AMOUNT,
       pay: "Alipay",
@@ -245,10 +278,12 @@ async function buildPayload() {
     },
     usdt_rub_buy: usdtRub,
     usdt_cny_sell: usdtCny,
+    usdt_thb: usdtThb,
     eth,
     cny_market: cny,
+    thb_market: thb,
     formula:
-      "cny_rub = (usdt_rub_buy / usdt_cny_sell) * (1 + markup%); cny = rub / cny_rub",
+      "fiat_rub = (usdt_rub_buy / usdt_fiat) * (1 + markup%); fiat = rub / fiat_rub",
   };
 }
 
@@ -304,5 +339,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, HOST, () => {
   console.log(`Откройте http://${HOST}:${PORT}`);
-  console.log("CNY: HTX sell-usdt-cny Alipay 3000 → CNY/RUB через A7A5 ETH");
+  console.log(
+    "CNY: HTX Alipay 3000 · THB: Binance TH USDT/THB → RUB через A7A5 ETH"
+  );
 });
